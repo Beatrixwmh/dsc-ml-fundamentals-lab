@@ -1,0 +1,2187 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/Beatrixwmh/dsc-ml-fundamentals-lab/blob/master/finished_lab%5C\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "qK-SNk36pstp"
+      },
+      "source": [
+        "# Machine Learning Fundamentals - Cumulative Lab\n",
+        "\n",
+        "## Introduction\n",
+        "\n",
+        "In this cumulative lab, you will work through an end-to-end machine learning workflow, focusing on the fundamental concepts of machine learning theory and processes. The main emphasis is on modeling theory (not EDA or preprocessing), so we will skip over some of the data visualization and data preparation steps that you would take in an actual modeling process."
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "GkRLr-Mapstu"
+      },
+      "source": [
+        "## Objectives\n",
+        "\n",
+        "You will be able to:\n",
+        "\n",
+        "* Recall the purpose of, and practice performing, a train-test split\n",
+        "* Recall the difference between bias and variance\n",
+        "* Practice identifying bias and variance in model performance\n",
+        "* Practice applying strategies to minimize bias and variance\n",
+        "* Practice selecting a final model and evaluating it on a holdout set"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "6KzE_pB2pstw"
+      },
+      "source": [
+        "## Your Task: Build a Model to Predict Blood Pressure\n",
+        "\n",
+        "![stethoscope sitting on a case](https://github.com/Beatrixwmh/dsc-ml-fundamentals-lab/blob/master/images/stethoscope.jpg?raw=1)\n",
+        "\n",
+        "<span>Photo by <a href=\"https://unsplash.com/@marceloleal80?utm_source=unsplash&amp;utm_medium=referral&amp;utm_content=creditCopyText\">Marcelo Leal</a> on <a href=\"https://unsplash.com/s/photos/blood-pressure?utm_source=unsplash&amp;utm_medium=referral&amp;utm_content=creditCopyText\">Unsplash</a></span>"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "xn5f7Bz9pstw"
+      },
+      "source": [
+        "### Business and Data Understanding\n",
+        "\n",
+        "Hypertension (high blood pressure) is a treatable condition, but measuring blood pressure requires specialized equipment that most people do not have at home.\n",
+        "\n",
+        "The question, then, is ***can we predict blood pressure using just a scale and a tape measure***? These measuring tools, which individuals are more likely to have at home, might be able to flag individuals with an increased risk of hypertension.\n",
+        "\n",
+        "[Researchers in Brazil](https://doi.org/10.1155/2014/637635) collected data from several hundred college students in order to answer this question. We will be specifically using the data they collected from female students.\n",
+        "\n",
+        "The measurements we have are:\n",
+        "\n",
+        "* Age (age in years)\n",
+        "* BMI (body mass index, a ratio of weight to height)\n",
+        "* WC (waist circumference in centimeters)\n",
+        "* HC (hip circumference in centimeters)\n",
+        "* WHR (waist-hip ratio)\n",
+        "* SBP (systolic blood pressure)\n",
+        "\n",
+        "The chart below describes various blood pressure values:\n",
+        "\n",
+        "<a title=\"Ian Furst, CC BY-SA 4.0 &lt;https://creativecommons.org/licenses/by-sa/4.0&gt;, via Wikimedia Commons\" href=\"https://commons.wikimedia.org/wiki/File:Hypertension_ranges_chart.png\"><img width=\"512\" alt=\"Hypertension ranges chart\" src=\"https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Hypertension_ranges_chart.png/512px-Hypertension_ranges_chart.png\"></a>\n",
+        "\n",
+        "### Requirements\n",
+        "\n",
+        "#### 1. Perform a Train-Test Split\n",
+        "\n",
+        "Load the data into a dataframe using pandas, separate the features (`X`) from the target (`y`), and use the `train_test_split` function to separate data into training and test sets.\n",
+        "\n",
+        "#### 2. Build and Evaluate a First Simple Model\n",
+        "\n",
+        "Using the `LinearRegression` model and `mean_squared_error` function from scikit-learn, build and evaluate a simple linear regression model using the training data. Also, use `cross_val_score` to simulate unseen data, without actually using the holdout test set.\n",
+        "\n",
+        "#### 3. Use `PolynomialFeatures` to Reduce Underfitting\n",
+        "\n",
+        "Apply a `PolynomialFeatures` transformer to give the model more ability to pick up on information from the training data. Test out different polynomial degrees until you have a model that is perfectly fit to the training data.\n",
+        "\n",
+        "#### 4. Use Regularization to Reduce Overfitting\n",
+        "\n",
+        "Instead of a basic `LinearRegression`, use a `Ridge` regression model to apply regularization to the overfit model. In order to do this you will need to scale the data. Test out different regularization penalties to find the best model.\n",
+        "\n",
+        "#### 5. Evaluate a Final Model on the Test Set\n",
+        "\n",
+        "Preprocess `X_test` and `y_test` appropriately in order to evaluate the performance of your final model on unseen data."
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "ATYzfwLYpsty"
+      },
+      "source": [
+        "## 1. Perform a Train-Test Split\n",
+        "\n",
+        "Before looking at the text below, try to remember: why is a train-test split the *first* step in a machine learning process?\n",
+        "\n",
+        "---\n",
+        "\n",
+        "<details>\n",
+        "    <summary style=\"cursor: pointer\"><b>Answer (click to reveal)</b></summary>\n",
+        "\n",
+        "A machine learning (predictive) workflow fundamentally emphasizes creating *a model that will perform well on unseen data*. We will hold out a subset of our original data as the \"test\" set that will stand in for truly unseen data that the model will encounter in the future.\n",
+        "\n",
+        "We make this separation as the first step for two reasons:\n",
+        "\n",
+        "1. Most importantly, we are avoiding *leakage* of information from the test set into the training set. Leakage can lead to inflated metrics, since the model has information about the \"unseen\" data that it won't have about real unseen data. This is why we always want to fit our transformers and models on the training data only, not the full dataset.\n",
+        "2. Also, we want to make sure the code we have written will actually work on unseen data. If we are able to transform our test data and evaluate it with our final model, that's a good sign that the same process will work for future data as well.\n",
+        "    \n",
+        "</details>\n",
+        "\n",
+        "\n",
+        "### Loading the Data\n",
+        "\n",
+        "In the cell below, we import the pandas library and open the full dataset for you. It has already been formatted and subsetted down to the relevant columns."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [],
+      "metadata": {
+        "id": "kRf7nhcjyvjt"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 1,
+      "metadata": {
+        "id": "rZnJg7b2pst0",
+        "outputId": "9defcfa9-948c-46eb-c6ef-922c8f4019fd",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 423
+        }
+      },
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "     Age    bmi   wc   hc  whr     SBP\n",
+              "0     31  28.76   88  101   87  128.00\n",
+              "1     21  27.59   86  110   78  123.33\n",
+              "2     23  22.45   72  104   69   90.00\n",
+              "3     24  28.16   89  108   82  126.67\n",
+              "4     20  25.05   81  108   75  120.00\n",
+              "..   ...    ...  ...  ...  ...     ...\n",
+              "219   21  45.15  112  132   85  157.00\n",
+              "220   24  37.89   96  124   77  124.67\n",
+              "221   37  33.24  104  108   96  126.67\n",
+              "222   28  35.68  103  130   79  114.67\n",
+              "223   18  36.24  113  128   88  119.67\n",
+              "\n",
+              "[224 rows x 6 columns]"
+            ],
+            "text/html": [
+              "\n",
+              "  <div id=\"df-75664a52-ad59-4cab-956f-260c5f3dd6b9\">\n",
+              "    <div class=\"colab-df-container\">\n",
+              "      <div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>Age</th>\n",
+              "      <th>bmi</th>\n",
+              "      <th>wc</th>\n",
+              "      <th>hc</th>\n",
+              "      <th>whr</th>\n",
+              "      <th>SBP</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>0</th>\n",
+              "      <td>31</td>\n",
+              "      <td>28.76</td>\n",
+              "      <td>88</td>\n",
+              "      <td>101</td>\n",
+              "      <td>87</td>\n",
+              "      <td>128.00</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>1</th>\n",
+              "      <td>21</td>\n",
+              "      <td>27.59</td>\n",
+              "      <td>86</td>\n",
+              "      <td>110</td>\n",
+              "      <td>78</td>\n",
+              "      <td>123.33</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>2</th>\n",
+              "      <td>23</td>\n",
+              "      <td>22.45</td>\n",
+              "      <td>72</td>\n",
+              "      <td>104</td>\n",
+              "      <td>69</td>\n",
+              "      <td>90.00</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>3</th>\n",
+              "      <td>24</td>\n",
+              "      <td>28.16</td>\n",
+              "      <td>89</td>\n",
+              "      <td>108</td>\n",
+              "      <td>82</td>\n",
+              "      <td>126.67</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>4</th>\n",
+              "      <td>20</td>\n",
+              "      <td>25.05</td>\n",
+              "      <td>81</td>\n",
+              "      <td>108</td>\n",
+              "      <td>75</td>\n",
+              "      <td>120.00</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>...</th>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>219</th>\n",
+              "      <td>21</td>\n",
+              "      <td>45.15</td>\n",
+              "      <td>112</td>\n",
+              "      <td>132</td>\n",
+              "      <td>85</td>\n",
+              "      <td>157.00</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>220</th>\n",
+              "      <td>24</td>\n",
+              "      <td>37.89</td>\n",
+              "      <td>96</td>\n",
+              "      <td>124</td>\n",
+              "      <td>77</td>\n",
+              "      <td>124.67</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>221</th>\n",
+              "      <td>37</td>\n",
+              "      <td>33.24</td>\n",
+              "      <td>104</td>\n",
+              "      <td>108</td>\n",
+              "      <td>96</td>\n",
+              "      <td>126.67</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>222</th>\n",
+              "      <td>28</td>\n",
+              "      <td>35.68</td>\n",
+              "      <td>103</td>\n",
+              "      <td>130</td>\n",
+              "      <td>79</td>\n",
+              "      <td>114.67</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>223</th>\n",
+              "      <td>18</td>\n",
+              "      <td>36.24</td>\n",
+              "      <td>113</td>\n",
+              "      <td>128</td>\n",
+              "      <td>88</td>\n",
+              "      <td>119.67</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "<p>224 rows × 6 columns</p>\n",
+              "</div>\n",
+              "      <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-75664a52-ad59-4cab-956f-260c5f3dd6b9')\"\n",
+              "              title=\"Convert this dataframe to an interactive table.\"\n",
+              "              style=\"display:none;\">\n",
+              "        \n",
+              "  <svg xmlns=\"http://www.w3.org/2000/svg\" height=\"24px\"viewBox=\"0 0 24 24\"\n",
+              "       width=\"24px\">\n",
+              "    <path d=\"M0 0h24v24H0V0z\" fill=\"none\"/>\n",
+              "    <path d=\"M18.56 5.44l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94zm-11 1L8.5 8.5l.94-2.06 2.06-.94-2.06-.94L8.5 2.5l-.94 2.06-2.06.94zm10 10l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94z\"/><path d=\"M17.41 7.96l-1.37-1.37c-.4-.4-.92-.59-1.43-.59-.52 0-1.04.2-1.43.59L10.3 9.45l-7.72 7.72c-.78.78-.78 2.05 0 2.83L4 21.41c.39.39.9.59 1.41.59.51 0 1.02-.2 1.41-.59l7.78-7.78 2.81-2.81c.8-.78.8-2.07 0-2.86zM5.41 20L4 18.59l7.72-7.72 1.47 1.35L5.41 20z\"/>\n",
+              "  </svg>\n",
+              "      </button>\n",
+              "      \n",
+              "  <style>\n",
+              "    .colab-df-container {\n",
+              "      display:flex;\n",
+              "      flex-wrap:wrap;\n",
+              "      gap: 12px;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-convert {\n",
+              "      background-color: #E8F0FE;\n",
+              "      border: none;\n",
+              "      border-radius: 50%;\n",
+              "      cursor: pointer;\n",
+              "      display: none;\n",
+              "      fill: #1967D2;\n",
+              "      height: 32px;\n",
+              "      padding: 0 0 0 0;\n",
+              "      width: 32px;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-convert:hover {\n",
+              "      background-color: #E2EBFA;\n",
+              "      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);\n",
+              "      fill: #174EA6;\n",
+              "    }\n",
+              "\n",
+              "    [theme=dark] .colab-df-convert {\n",
+              "      background-color: #3B4455;\n",
+              "      fill: #D2E3FC;\n",
+              "    }\n",
+              "\n",
+              "    [theme=dark] .colab-df-convert:hover {\n",
+              "      background-color: #434B5C;\n",
+              "      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);\n",
+              "      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));\n",
+              "      fill: #FFFFFF;\n",
+              "    }\n",
+              "  </style>\n",
+              "\n",
+              "      <script>\n",
+              "        const buttonEl =\n",
+              "          document.querySelector('#df-75664a52-ad59-4cab-956f-260c5f3dd6b9 button.colab-df-convert');\n",
+              "        buttonEl.style.display =\n",
+              "          google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
+              "\n",
+              "        async function convertToInteractive(key) {\n",
+              "          const element = document.querySelector('#df-75664a52-ad59-4cab-956f-260c5f3dd6b9');\n",
+              "          const dataTable =\n",
+              "            await google.colab.kernel.invokeFunction('convertToInteractive',\n",
+              "                                                     [key], {});\n",
+              "          if (!dataTable) return;\n",
+              "\n",
+              "          const docLinkHtml = 'Like what you see? Visit the ' +\n",
+              "            '<a target=\"_blank\" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'\n",
+              "            + ' to learn more about interactive tables.';\n",
+              "          element.innerHTML = '';\n",
+              "          dataTable['output_type'] = 'display_data';\n",
+              "          await google.colab.output.renderOutput(dataTable, element);\n",
+              "          const docLink = document.createElement('div');\n",
+              "          docLink.innerHTML = docLinkHtml;\n",
+              "          element.appendChild(docLink);\n",
+              "        }\n",
+              "      </script>\n",
+              "    </div>\n",
+              "  </div>\n",
+              "  "
+            ]
+          },
+          "metadata": {},
+          "execution_count": 1
+        }
+      ],
+      "source": [
+        "# Run this cell without changes\n",
+        "import pandas as pd\n",
+        "url= 'https://raw.githubusercontent.com/Beatrixwmh/dsc-ml-fundamentals-lab/master/data/blood_pressure.csv'\n",
+        "df = pd.read_csv(url,index_col=0)\n",
+        "df"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [],
+      "metadata": {
+        "id": "r_erkXpG4RD4"
+      },
+      "execution_count": 1,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "tZ-SeTakpst2"
+      },
+      "source": [
+        "### Identifying Features and Target\n",
+        "\n",
+        "Once the data is loaded into a pandas dataframe, the next step is identifying which columns represent features and which column represents the target.\n",
+        "\n",
+        "Recall that in this instance, we are trying to predict systolic blood pressure.\n",
+        "\n",
+        "In the cell below, assign `X` to be the features and `y` to be the target. Remember that `X` should **NOT** contain the target."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 2,
+      "metadata": {
+        "id": "Xdsr9izopst2",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 423
+        },
+        "outputId": "11adad83-2ed9-41a4-a64e-10ffd1246edf"
+      },
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "     Age    bmi   wc   hc  whr\n",
+              "0     31  28.76   88  101   87\n",
+              "1     21  27.59   86  110   78\n",
+              "2     23  22.45   72  104   69\n",
+              "3     24  28.16   89  108   82\n",
+              "4     20  25.05   81  108   75\n",
+              "..   ...    ...  ...  ...  ...\n",
+              "219   21  45.15  112  132   85\n",
+              "220   24  37.89   96  124   77\n",
+              "221   37  33.24  104  108   96\n",
+              "222   28  35.68  103  130   79\n",
+              "223   18  36.24  113  128   88\n",
+              "\n",
+              "[224 rows x 5 columns]"
+            ],
+            "text/html": [
+              "\n",
+              "  <div id=\"df-8d849f6a-068b-45e3-a001-a72d6759cc6f\">\n",
+              "    <div class=\"colab-df-container\">\n",
+              "      <div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>Age</th>\n",
+              "      <th>bmi</th>\n",
+              "      <th>wc</th>\n",
+              "      <th>hc</th>\n",
+              "      <th>whr</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>0</th>\n",
+              "      <td>31</td>\n",
+              "      <td>28.76</td>\n",
+              "      <td>88</td>\n",
+              "      <td>101</td>\n",
+              "      <td>87</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>1</th>\n",
+              "      <td>21</td>\n",
+              "      <td>27.59</td>\n",
+              "      <td>86</td>\n",
+              "      <td>110</td>\n",
+              "      <td>78</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>2</th>\n",
+              "      <td>23</td>\n",
+              "      <td>22.45</td>\n",
+              "      <td>72</td>\n",
+              "      <td>104</td>\n",
+              "      <td>69</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>3</th>\n",
+              "      <td>24</td>\n",
+              "      <td>28.16</td>\n",
+              "      <td>89</td>\n",
+              "      <td>108</td>\n",
+              "      <td>82</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>4</th>\n",
+              "      <td>20</td>\n",
+              "      <td>25.05</td>\n",
+              "      <td>81</td>\n",
+              "      <td>108</td>\n",
+              "      <td>75</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>...</th>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "      <td>...</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>219</th>\n",
+              "      <td>21</td>\n",
+              "      <td>45.15</td>\n",
+              "      <td>112</td>\n",
+              "      <td>132</td>\n",
+              "      <td>85</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>220</th>\n",
+              "      <td>24</td>\n",
+              "      <td>37.89</td>\n",
+              "      <td>96</td>\n",
+              "      <td>124</td>\n",
+              "      <td>77</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>221</th>\n",
+              "      <td>37</td>\n",
+              "      <td>33.24</td>\n",
+              "      <td>104</td>\n",
+              "      <td>108</td>\n",
+              "      <td>96</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>222</th>\n",
+              "      <td>28</td>\n",
+              "      <td>35.68</td>\n",
+              "      <td>103</td>\n",
+              "      <td>130</td>\n",
+              "      <td>79</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>223</th>\n",
+              "      <td>18</td>\n",
+              "      <td>36.24</td>\n",
+              "      <td>113</td>\n",
+              "      <td>128</td>\n",
+              "      <td>88</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "<p>224 rows × 5 columns</p>\n",
+              "</div>\n",
+              "      <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-8d849f6a-068b-45e3-a001-a72d6759cc6f')\"\n",
+              "              title=\"Convert this dataframe to an interactive table.\"\n",
+              "              style=\"display:none;\">\n",
+              "        \n",
+              "  <svg xmlns=\"http://www.w3.org/2000/svg\" height=\"24px\"viewBox=\"0 0 24 24\"\n",
+              "       width=\"24px\">\n",
+              "    <path d=\"M0 0h24v24H0V0z\" fill=\"none\"/>\n",
+              "    <path d=\"M18.56 5.44l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94zm-11 1L8.5 8.5l.94-2.06 2.06-.94-2.06-.94L8.5 2.5l-.94 2.06-2.06.94zm10 10l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94z\"/><path d=\"M17.41 7.96l-1.37-1.37c-.4-.4-.92-.59-1.43-.59-.52 0-1.04.2-1.43.59L10.3 9.45l-7.72 7.72c-.78.78-.78 2.05 0 2.83L4 21.41c.39.39.9.59 1.41.59.51 0 1.02-.2 1.41-.59l7.78-7.78 2.81-2.81c.8-.78.8-2.07 0-2.86zM5.41 20L4 18.59l7.72-7.72 1.47 1.35L5.41 20z\"/>\n",
+              "  </svg>\n",
+              "      </button>\n",
+              "      \n",
+              "  <style>\n",
+              "    .colab-df-container {\n",
+              "      display:flex;\n",
+              "      flex-wrap:wrap;\n",
+              "      gap: 12px;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-convert {\n",
+              "      background-color: #E8F0FE;\n",
+              "      border: none;\n",
+              "      border-radius: 50%;\n",
+              "      cursor: pointer;\n",
+              "      display: none;\n",
+              "      fill: #1967D2;\n",
+              "      height: 32px;\n",
+              "      padding: 0 0 0 0;\n",
+              "      width: 32px;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-convert:hover {\n",
+              "      background-color: #E2EBFA;\n",
+              "      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);\n",
+              "      fill: #174EA6;\n",
+              "    }\n",
+              "\n",
+              "    [theme=dark] .colab-df-convert {\n",
+              "      background-color: #3B4455;\n",
+              "      fill: #D2E3FC;\n",
+              "    }\n",
+              "\n",
+              "    [theme=dark] .colab-df-convert:hover {\n",
+              "      background-color: #434B5C;\n",
+              "      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);\n",
+              "      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));\n",
+              "      fill: #FFFFFF;\n",
+              "    }\n",
+              "  </style>\n",
+              "\n",
+              "      <script>\n",
+              "        const buttonEl =\n",
+              "          document.querySelector('#df-8d849f6a-068b-45e3-a001-a72d6759cc6f button.colab-df-convert');\n",
+              "        buttonEl.style.display =\n",
+              "          google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
+              "\n",
+              "        async function convertToInteractive(key) {\n",
+              "          const element = document.querySelector('#df-8d849f6a-068b-45e3-a001-a72d6759cc6f');\n",
+              "          const dataTable =\n",
+              "            await google.colab.kernel.invokeFunction('convertToInteractive',\n",
+              "                                                     [key], {});\n",
+              "          if (!dataTable) return;\n",
+              "\n",
+              "          const docLinkHtml = 'Like what you see? Visit the ' +\n",
+              "            '<a target=\"_blank\" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'\n",
+              "            + ' to learn more about interactive tables.';\n",
+              "          element.innerHTML = '';\n",
+              "          dataTable['output_type'] = 'display_data';\n",
+              "          await google.colab.output.renderOutput(dataTable, element);\n",
+              "          const docLink = document.createElement('div');\n",
+              "          docLink.innerHTML = docLinkHtml;\n",
+              "          element.appendChild(docLink);\n",
+              "        }\n",
+              "      </script>\n",
+              "    </div>\n",
+              "  </div>\n",
+              "  "
+            ]
+          },
+          "metadata": {},
+          "execution_count": 2
+        }
+      ],
+      "source": [
+        "# Replace None with appropriate code\n",
+        "\n",
+        "X = df[[x for x in df.columns][:-1]]\n",
+        "y = df['SBP']\n",
+        "\n",
+        "X"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "_uICRRxbpst3"
+      },
+      "source": [
+        "Make sure the assert statements pass before moving on to the next step:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 3,
+      "metadata": {
+        "id": "t2NWNfjBpst4"
+      },
+      "outputs": [],
+      "source": [
+        "# Run this cell without changes\n",
+        "\n",
+        "# X should be a 2D matrix with 224 rows and 5 columns\n",
+        "assert X.shape == (224, 5)\n",
+        "\n",
+        "# y should be a 1D array with 224 values\n",
+        "assert y.shape == (224,)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "IjVSle3Zpst5"
+      },
+      "source": [
+        "### Performing Train-Test Split\n",
+        "\n",
+        "In the cell below, import `train_test_split` from scikit-learn ([documentation here](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html)).\n",
+        "\n",
+        "Then create variables `X_train`, `X_test`, `y_train`, and `y_test` using `train_test_split` with `X`, `y`, and `random_state=2021`."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 4,
+      "metadata": {
+        "id": "-f_g6e2Dpst6"
+      },
+      "outputs": [],
+      "source": [
+        "# Replace None with appropriate code\n",
+        "\n",
+        "# Import the relevant function\n",
+        "from sklearn.model_selection import train_test_split\n",
+        "\n",
+        "# Create train and test data using random_state=2021\n",
+        "X_train, X_test, y_train, y_test = train_test_split(X,y, random_state=2021)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "zHD_u9B2pst6"
+      },
+      "source": [
+        "Make sure that the assert statements pass:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 5,
+      "metadata": {
+        "id": "dJKlddOLpst7"
+      },
+      "outputs": [],
+      "source": [
+        "# Run this cell without changes\n",
+        "\n",
+        "assert X_train.shape == (168, 5)\n",
+        "assert X_test.shape == (56, 5)\n",
+        "\n",
+        "assert y_train.shape == (168,)\n",
+        "assert y_test.shape == (56,)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "U_6LwjMPpst7"
+      },
+      "source": [
+        "## 2. Build and Evaluate a First Simple Model\n",
+        "\n",
+        "For our baseline model (FSM), we'll use a `LinearRegression` from scikit-learn ([documentation here](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LinearRegression.html)).\n",
+        "\n",
+        "### Instantiating the Model\n",
+        "\n",
+        "In the cell below, instantiate a `LinearRegression` model and assign it to the variable `baseline_model`."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 6,
+      "metadata": {
+        "id": "sFAMgFC5pst8"
+      },
+      "outputs": [],
+      "source": [
+        "# Replace None with appropriate code\n",
+        "from sklearn.linear_model import LinearRegression\n",
+        "# Import the relevant class\n",
+        "\n",
+        "# Instantiate a linear regression model\n",
+        "baseline_model = LinearRegression()"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "eAb3yEjgpst8"
+      },
+      "source": [
+        "Make sure the assert passes:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 7,
+      "metadata": {
+        "id": "ezdPFSO_pst8"
+      },
+      "outputs": [],
+      "source": [
+        "# Run this cell without changes\n",
+        "\n",
+        "# baseline_model should be a linear regression model\n",
+        "assert type(baseline_model) == LinearRegression"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "YyIjGVIApst9"
+      },
+      "source": [
+        "If you are getting the type of `baseline_model` as `abc.ABCMeta`, make sure you actually invoked the constructor of the linear regression class with `()`.\n",
+        "\n",
+        "If you are getting `NameError: name 'LinearRegression' is not defined`, make sure you have the correct import statement."
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "Ima8GhaRpst9"
+      },
+      "source": [
+        "### Fitting and Evaluating the Model on the Full Training Set\n",
+        "\n",
+        "In the cell below, fit the model on `X_train` and `y_train`:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 8,
+      "metadata": {
+        "id": "NAUzA81ypst-",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "8d425d03-1730-4ee5-9801-c7a1ce3901fa"
+      },
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "LinearRegression()"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 8
+        }
+      ],
+      "source": [
+        "# Your code here\n",
+        "baseline_model.fit(X_train,y_train)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "a3NOFL1hpst-"
+      },
+      "source": [
+        "Then, evaluate the model using root mean squared error (RMSE). To do this, first import the `mean_squared_error` function from scikit-learn ([documentation here](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_squared_error.html)). Then pass in both the actual and predicted y values, along with `squared=False` (to get the RMSE rather than MSE)."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 9,
+      "metadata": {
+        "id": "8riwh9MWpst-",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "72fd7ada-19fe-4c18-ce4e-ebf2d27f9251"
+      },
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "15.97633456376879"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 9
+        }
+      ],
+      "source": [
+        "# Replace None with appropriate code\n",
+        "\n",
+        "# Import the relevant function\n",
+        "from sklearn.metrics import mean_squared_error\n",
+        "\n",
+        "# Generate predictions using baseline_model and X_train\n",
+        "y_pred_baseline = baseline_model.predict(X_train)\n",
+        "\n",
+        "# Evaluate using mean_squared_error with squared=False\n",
+        "baseline_rmse = mean_squared_error(y_train,y_pred_baseline,squared=False)\n",
+        "baseline_rmse"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "AXrCEZ2ypst_"
+      },
+      "source": [
+        "Your RMSE calculation should be around 15.98:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 10,
+      "metadata": {
+        "id": "Wic6r6l7pst_"
+      },
+      "outputs": [],
+      "source": [
+        "# Run this cell without changes\n",
+        "assert round(baseline_rmse, 2) == 15.98"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "3jvdVHTPpst_"
+      },
+      "source": [
+        "This means that on the *training* data, our predictions are off by about 16 mmHg on average.\n",
+        "\n",
+        "But what about on *unseen* data?\n",
+        "\n",
+        "To stand in for true unseen data (and avoid making decisions based on this particular data split, therefore not using `X_test` or `y_test` yet), let's use cross-validation.\n",
+        "\n",
+        "### Fitting and Evaluating the Model with Cross Validation\n",
+        "\n",
+        "In the cell below, import `cross_val_score` ([documentation here](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.cross_val_score.html)) and call it with `baseline_model`, `X_train`, and `y_train`.\n",
+        "\n",
+        "For specific implementation reasons within the scikit-learn library, you'll need to use `scoring=\"neg_root_mean_squared_error\"`, which returns the RMSE values with their signs flipped to negative. Then we take the average and negate it at the end, so the number is directly comparable to the RMSE number above."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 11,
+      "metadata": {
+        "id": "KBtN97zppst_",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "a144799d-d1ac-4870-9736-eab0cb0b85ca"
+      },
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "15.953844849875598"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 11
+        }
+      ],
+      "source": [
+        "# Replace None with appropriate code\n",
+        "\n",
+        "# Import the relevant function\n",
+        "from sklearn.model_selection import cross_val_score\n",
+        "\n",
+        "# Get the cross validated scores for our baseline model\n",
+        "baseline_cv = cross_val_score(baseline_model,X_train,y_train,scoring= 'neg_root_mean_squared_error')\n",
+        "\n",
+        "# Display the average of the cross-validated scores\n",
+        "baseline_cv_rmse = -(baseline_cv.mean())\n",
+        "baseline_cv_rmse"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "MWccsq_xpsuA"
+      },
+      "source": [
+        "The averaged RMSE for the cross-validated scores should be around 15.95:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 12,
+      "metadata": {
+        "id": "jbhzFSQCpsuA"
+      },
+      "outputs": [],
+      "source": [
+        "# Run this cell without changes\n",
+        "\n",
+        "assert round(baseline_cv_rmse, 2) == 15.95"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "vBTGQH4ZpsuA"
+      },
+      "source": [
+        "### Analysis of Baseline Model\n",
+        "\n",
+        "So, we got an RMSE of about 16 for both the training data and the validation data. RMSE is a form of *error*, so this means the performance is somewhat better on the validation data than the training data. (This is a bit unusual — normally we expect to see better scores on the training data, but maybe there are some outliers or other reasons that this particular split has this result.)\n",
+        "\n",
+        "Referring back to the chart above, both errors mean that on average we would expect to mix up someone with stage 1 vs. stage 2 hypertension, but not someone with normal blood pressure vs. critical hypertension. So it appears that the features we have might be predictive enough to be useful.\n",
+        "\n",
+        "Are we overfitting? Underfitting?\n",
+        "\n",
+        "---\n",
+        "\n",
+        "<details>\n",
+        "    <summary style=\"cursor: pointer\"><b>Answer (click to reveal)</b></summary>\n",
+        "\n",
+        "The RMSE values for the training data and test data are fairly close to each other and the validation score is actually slightly better than the training score, so we can assume that we are not overfitting.\n",
+        "\n",
+        "It seems like our model has some room for improvement, but without further investigation it's impossible to know whether we are underfitting, or there is just irreducible error present. Maybe we are simply missing the features we would need to reduce error. (For example, we don't know anything about the diets of these study participants, and we know that diet can influence blood pressure.) But it's also possible that there is some reducible error, meaning we are currently underfitting.\n",
+        "\n",
+        "In the next step, we'll assume we *are* underfitting, and will attempt to reduce that underfitting by applying some polynomial features transformations to the data.\n",
+        "    \n",
+        "</details>"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "oAzH_ei2psuA"
+      },
+      "source": [
+        "## 3. Use `PolynomialFeatures` to Reduce Underfitting\n",
+        "\n",
+        "Comprehension check: does \"underfitting\" mean we have high *bias*, or high *variance*?\n",
+        "\n",
+        "---\n",
+        "\n",
+        "<details>\n",
+        "    <summary style=\"cursor: pointer\"><b>Answer (click to reveal)</b></summary>\n",
+        "\n",
+        "Underfitting means high bias. While it's possible that your model will have both high bias and high variance at the same time, in general underfitting means that there is additional information in the data that your model currently isn't picking up on, so you are getting higher error metrics than necessary.\n",
+        "    \n",
+        "</details>\n",
+        "\n",
+        "In some model algorithms (e.g. k-nearest neighbors) there are hyperparameters we can adjust so that the model is more flexible and can pick up on additional information in the data. In this case, since we are using linear regression, let's instead perform some feature engineering with `PolynomialFeatures`.\n",
+        "\n",
+        "### Creating `PolynomialFeatures` Transformer, Fitting and Transforming `X_train`\n",
+        "\n",
+        "In the cell below, instantiate a `PolynomialFeatures` transformer with default arguments (i.e. just `PolynomialFeatures()`). Documentation for `PolynomialFeatures` can be found [here](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.PolynomialFeatures.html).\n",
+        "\n",
+        "Then fit the transformer on `X_train` and create a new `X_train_poly` matrix by transforming `X_train`."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 13,
+      "metadata": {
+        "id": "2TpD9cJVpsuB"
+      },
+      "outputs": [],
+      "source": [
+        "# Replace None with appropriate code\n",
+        "\n",
+        "# Import the relevant class\n",
+        "from sklearn.preprocessing import PolynomialFeatures\n",
+        "\n",
+        "# Instantiate polynomial features transformer\n",
+        "poly = PolynomialFeatures()\n",
+        "\n",
+        "# Fit transformer on entire X_train\n",
+        "poly.fit(X_train)\n",
+        "\n",
+        "# Create transformed data matrix by transforming X_train\n",
+        "X_train_poly = poly.transform(X_train)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "ck1D4CmrpsuB"
+      },
+      "source": [
+        "Check that `poly` was instantiated correctly, and `X_train_poly` has the correct shape:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 14,
+      "metadata": {
+        "id": "o3g_z_vrpsuB"
+      },
+      "outputs": [],
+      "source": [
+        "# Run this cell without changes\n",
+        "\n",
+        "assert type(poly) == PolynomialFeatures\n",
+        "\n",
+        "assert X_train_poly.shape == (168, 21)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "WEp8MlgvpsuB"
+      },
+      "source": [
+        "### Fitting and Evaluating the Model on the Transformed Training Set\n",
+        "\n",
+        "In the cell below, fit the `baseline_model` on `X_train_poly` and `y_train`, then find the RMSE using the same technique you used in Step 2."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 15,
+      "metadata": {
+        "id": "fjADuww2psuB",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "fd694767-490f-45c6-b961-65a7b912cfb4"
+      },
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "15.070011404625243"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 15
+        }
+      ],
+      "source": [
+        "# Replace None with appropriate code\n",
+        "\n",
+        "# Fit baseline_model\n",
+        "baseline_model.fit(X_train_poly,y_train)\n",
+        "\n",
+        "# Make predictions\n",
+        "y_pred_poly = baseline_model.predict(X_train_poly)\n",
+        "\n",
+        "# Find the RMSE on the full X_train_poly and y_train\n",
+        "poly_rmse = mean_squared_error(y_train,y_pred_poly,squared=False)\n",
+        "poly_rmse"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "eKjF6rDIpsuC"
+      },
+      "source": [
+        "The new RMSE should be about 15.07:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 16,
+      "metadata": {
+        "id": "5ZcBhdMFpsuC"
+      },
+      "outputs": [],
+      "source": [
+        "# Run this cell without changes\n",
+        "\n",
+        "assert round(poly_rmse, 2) == 15.07"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "qfYgyba5psuC"
+      },
+      "source": [
+        "### Fitting and Evaluating the Model with Cross Validation\n",
+        "\n",
+        "In the cell below, use `cross_val_score` to find an averaged cross-validated RMSE using the same technique you used in Step 2."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 17,
+      "metadata": {
+        "id": "EjNelJBMpsuC",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "20595ccf-b345-4992-b6a5-46d151d6847e"
+      },
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "17.738421720231184"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 17
+        }
+      ],
+      "source": [
+        "# Replace None with appropriate code\n",
+        "\n",
+        "# Get the cross validated scores for our transformed features\n",
+        "poly_cv = cross_val_score(baseline_model,X_train_poly,y_train,scoring='neg_root_mean_squared_error')\n",
+        "\n",
+        "# Display the average of the cross-validated scores\n",
+        "poly_cv_rmse = -(poly_cv.mean())\n",
+        "poly_cv_rmse"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "01k4Wj3XpsuC"
+      },
+      "source": [
+        "The cross-validated RMSE should be about 17.74:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 18,
+      "metadata": {
+        "id": "_vLM336tpsuC"
+      },
+      "outputs": [],
+      "source": [
+        "# Run this cell without changes\n",
+        "\n",
+        "assert round(poly_cv_rmse, 2) == 17.74"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "YcxxrFoJpsuD"
+      },
+      "source": [
+        "### Analysis of `PolynomialFeatures` Transformation\n",
+        "\n",
+        "The cell below displays the baseline and transformed values for the full training set vs. the cross-validated average:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 19,
+      "metadata": {
+        "id": "qSDzkLPdpsuD",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "205d3e6c-f7d1-48a7-e642-6e4ef60bec6f"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Baseline Model\n",
+            "Train RMSE: 15.97633456376879\n",
+            "Validation RMSE: 15.953844849875598\n",
+            "\n",
+            "Model with Polynomial Transformation\n",
+            "Train RMSE: 15.070011404625243\n",
+            "Validation RMSE: 17.738421720231184\n"
+          ]
+        }
+      ],
+      "source": [
+        "# Run this cell without changes\n",
+        "\n",
+        "print(\"Baseline Model\")\n",
+        "print(\"Train RMSE:\", baseline_rmse)\n",
+        "print(\"Validation RMSE:\", baseline_cv_rmse)\n",
+        "print()\n",
+        "print(\"Model with Polynomial Transformation\")\n",
+        "print(\"Train RMSE:\", poly_rmse)\n",
+        "print(\"Validation RMSE:\", poly_cv_rmse)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "wKhJDVzWpsuD"
+      },
+      "source": [
+        "So, what does this mean about the result of our polynomial features transformation? What was the impact on bias (underfitting)? What was the impact on variance (overfitting)?\n",
+        "\n",
+        "---\n",
+        "\n",
+        "<details>\n",
+        "    <summary style=\"cursor: pointer\"><b>Answer (click to reveal)</b></summary>\n",
+        "\n",
+        "The polynomial features transformation did successfully reduce bias (reduce underfitting). We can tell because the RMSE decreased on the training dataset. However, it also increased variance (increased overfitting). We can tell because the RMSE increased on the validation dataset compared to the train dataset.\n",
+        "\n",
+        "Essentially this means that the polynomial features transformation gave our model the ability to pick up on more information from the training dataset, but some of that information was actually \"noise\" and not information that was useful for making predictions on unseen data.\n",
+        "    \n",
+        "</details>\n",
+        "\n",
+        "In the cell below, we plot the train vs. validation RMSE across various different degrees of `PolynomialFeatures`:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 20,
+      "metadata": {
+        "id": "ptiXrv0QpsuD",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 350
+        },
+        "outputId": "db9516c4-9b49-4c06-f0c3-df2bb3affb32"
+      },
+      "outputs": [
+        {
+          "output_type": "display_data",
+          "data": {
+            "text/plain": [
+              "<Figure size 936x360 with 2 Axes>"
+            ],
+            "image/png": "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\n"
+          },
+          "metadata": {
+            "needs_background": "light"
+          }
+        }
+      ],
+      "source": [
+        "# Run this cell without changes\n",
+        "\n",
+        "# Create lists of RMSE values\n",
+        "train_rmse = []\n",
+        "val_rmse = []\n",
+        "\n",
+        "# Create list of degrees we want to consider\n",
+        "degrees = list(range(1,8))\n",
+        "\n",
+        "for degree in degrees:\n",
+        "    # Create transformer of relevant degree and transform X_train\n",
+        "    poly = PolynomialFeatures(degree)\n",
+        "    X_train_poly = poly.fit_transform(X_train)\n",
+        "    baseline_model.fit(X_train_poly, y_train)\n",
+        "    \n",
+        "    # RMSE for training data\n",
+        "    y_pred_poly = baseline_model.predict(X_train_poly)\n",
+        "    train_rmse.append(mean_squared_error(y_train, y_pred_poly, squared=False))\n",
+        "    \n",
+        "    # RMSE for validation data\n",
+        "    poly_cv = cross_val_score(baseline_model, X_train_poly, y_train, scoring=\"neg_root_mean_squared_error\")\n",
+        "    val_rmse.append(-(poly_cv.mean()))\n",
+        "\n",
+        "# Set up plot\n",
+        "import matplotlib.pyplot as plt\n",
+        "fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(13,5))\n",
+        "\n",
+        "# Plot RMSE for training data\n",
+        "ax1.plot(degrees, train_rmse)\n",
+        "ax1.set_title(\"Training Data\")\n",
+        "\n",
+        "# Plot RMSE for validation data\n",
+        "ax2.plot(degrees, val_rmse, color=\"orange\")\n",
+        "ax2.set_title(\"Validation Data\")\n",
+        "\n",
+        "# Shared attributes for plots\n",
+        "for ax in (ax1, ax2):\n",
+        "    ax.set_xticks(degrees)\n",
+        "    ax.set_xlabel(\"Polynomial Degree\")\n",
+        "    ax.set_ylabel(\"RMSE\")"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "m3bfpl-GpsuD"
+      },
+      "source": [
+        "Based on the above graphs, let's plan to use a polynomial degree of 5. Why? Because that is where the RMSE for the training data has dropped down to essentially zero, meaning we are close to perfectly overfitting on the training data.\n",
+        "\n",
+        "(This is a design decision where there isn't always a single right answer. Later we will introduce a tool called \"grid search\" that will allow you to tune multiple aspects of the model at once instead of having to choose one step at a time like this.)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 21,
+      "metadata": {
+        "id": "DlfKU3qjpsuD"
+      },
+      "outputs": [],
+      "source": [
+        "# Run this cell without changes\n",
+        "\n",
+        "# Create transformer of relevant degree and transform X_train\n",
+        "poly = PolynomialFeatures(5)\n",
+        "X_train_poly = poly.fit_transform(X_train)\n",
+        "baseline_model.fit(X_train_poly, y_train)\n",
+        "\n",
+        "# RMSE for training data\n",
+        "y_pred_poly = baseline_model.predict(X_train_poly)\n",
+        "final_poly_rmse = mean_squared_error(y_train, y_pred_poly, squared=False)\n",
+        "\n",
+        "# RMSE for validation data\n",
+        "poly_cv = cross_val_score(baseline_model, X_train_poly, y_train, scoring=\"neg_root_mean_squared_error\")\n",
+        "final_poly_cv_rmse = -(poly_cv.mean())"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 22,
+      "metadata": {
+        "id": "KUUu6Wv2psuE",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "a64983c9-9dcb-468f-d341-e43e0d68542e"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Baseline Model\n",
+            "Train RMSE: 15.97633456376879\n",
+            "Validation RMSE: 15.953844849875598\n",
+            "\n",
+            "Model with Polynomial Transformation (Degree 5)\n",
+            "Train RMSE: 1.4308605074521387e-06\n",
+            "Validation RMSE: 17109.831111337047\n"
+          ]
+        }
+      ],
+      "source": [
+        "# Run this cell without changes\n",
+        "\n",
+        "print(\"Baseline Model\")\n",
+        "print(\"Train RMSE:\", baseline_rmse)\n",
+        "print(\"Validation RMSE:\", baseline_cv_rmse)\n",
+        "print()\n",
+        "print(\"Model with Polynomial Transformation (Degree 5)\")\n",
+        "print(\"Train RMSE:\", final_poly_rmse)\n",
+        "print(\"Validation RMSE:\", final_poly_cv_rmse)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "9mJWOcJ3psuE"
+      },
+      "source": [
+        "We have a dramatically improved train RMSE (approximately 16 down to 0) and a dramatically worsened validation RMSE (approximately 16 up to 17,000). At this point we are clearly overfitting, but we have successfully reduced the underfitting on the training dataset.\n",
+        "\n",
+        "In the next step, let's apply a technique to address this overfitting."
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "2bOaETwepsuE"
+      },
+      "source": [
+        "## 4. Use Regularization to Reduce Overfitting\n",
+        "\n",
+        "Let's use regularization to address this overfitting, specifically using the `Ridge` model from scikit-learn ([documentation here](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Ridge.html)), which uses the L2 norm.\n",
+        "\n",
+        "### Scaling the Data\n",
+        "\n",
+        "Because L2 regularization is distance-based, we need to scale our data before passing it into this model. In the cell below, instantiate a `StandardScaler` ([documentation here](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html)) and fit then transform the full `X_train_poly`."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 24,
+      "metadata": {
+        "id": "MOwZleVipsuE"
+      },
+      "outputs": [],
+      "source": [
+        "# Replace None with appropriate code\n",
+        "\n",
+        "# Import the relevant class\n",
+        "from sklearn.preprocessing import StandardScaler\n",
+        "\n",
+        "# Instantiate the scaler\n",
+        "scaler = StandardScaler()\n",
+        "\n",
+        "# Fit the scaler on X_train_poly\n",
+        "scaler.fit(X_train_poly)\n",
+        "\n",
+        "# Transform the data and create a new matrix\n",
+        "X_train_scaled = scaler.transform(X_train_poly)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "RbeIG7aXpsuE"
+      },
+      "source": [
+        "The scaled data should have the same shape as `X_train_poly` but the values should be different:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 25,
+      "metadata": {
+        "id": "s-OuJWo6psuE"
+      },
+      "outputs": [],
+      "source": [
+        "# Run this cell without changes\n",
+        "\n",
+        "assert X_train_scaled.shape == X_train_poly.shape\n",
+        "assert X_train_scaled[0][0] != X_train_poly[0][0]"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "7x_gRexxpsuE"
+      },
+      "source": [
+        "### Fitting a Ridge Model\n",
+        "\n",
+        "In the cell below, instantiate a `Ridge` model with `random_state=42`, then fit it on `X_train_scaled` and `y_train`."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 26,
+      "metadata": {
+        "id": "JTLoFMhPpsuF",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "b35c4121-09c7-429e-d475-8d49641124f0"
+      },
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "Ridge(random_state=42)"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 26
+        }
+      ],
+      "source": [
+        "# Replace None with appropriate code\n",
+        "\n",
+        "# Import the relevant class\n",
+        "from sklearn.linear_model import Ridge\n",
+        "\n",
+        "# Instantiate the model with random_state=42\n",
+        "ridge_model = Ridge(random_state=42)\n",
+        "\n",
+        "# Fit the model\n",
+        "ridge_model.fit(X_train_scaled,y_train)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "vauJ8TW_psuF"
+      },
+      "source": [
+        "### Metrics for Ridge Model\n",
+        "\n",
+        "Now, find the train and cross-validated RMSE values, and assign them to `ridge_rmse` and `ridge_cv_rmse` respectively. You can refer back to previous steps to remember how to do this! Remember to use `ridge_model` and `X_train_scaled`."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [],
+      "metadata": {
+        "id": "ic9Rr-6nYVsf"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 31,
+      "metadata": {
+        "id": "zmjQgz3YpsuF",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "3c383b08-e0bd-4c0c-8551-d5e7ee3226a1"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Train RMSE: 15.23990847052503\n",
+            "Validation RMSE: 16.053219757460585\n"
+          ]
+        }
+      ],
+      "source": [
+        "# Your code here\n",
+        "ridge_rmse= mean_squared_error(y_train, ridge_model.predict(X_train_scaled),squared= False)\n",
+        "ridge_cv_rmse= -cross_val_score(ridge_model,X_train_scaled,y_train, scoring= 'neg_root_mean_squared_error').mean()\n",
+        "print(\"Train RMSE:\", ridge_rmse)\n",
+        "print(\"Validation RMSE:\", ridge_cv_rmse)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "Fj5vEMWipsuG"
+      },
+      "source": [
+        "Your train RMSE should be about 15.24, and validation RMSE should be about 16.05:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 32,
+      "metadata": {
+        "id": "wTEw_9uypsuG"
+      },
+      "outputs": [],
+      "source": [
+        "# Run this cell without changes\n",
+        "\n",
+        "assert round(ridge_rmse, 2) == 15.24\n",
+        "assert round(ridge_cv_rmse, 2) == 16.05"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "ZPO9vb2TpsuG"
+      },
+      "source": [
+        "### Analysis of Model with Regularization\n",
+        "\n",
+        "The following cell shows metrics for each model so far:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 33,
+      "metadata": {
+        "id": "0-43FMEspsuG",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "f137ae74-abd0-4291-abc6-1330e9c4acdf"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Baseline Model\n",
+            "Train RMSE: 15.97633456376879\n",
+            "Validation RMSE: 15.953844849875598\n",
+            "\n",
+            "Model with Polynomial Transformation (Degree 5)\n",
+            "Train RMSE: 1.4308605074521387e-06\n",
+            "Validation RMSE: 17109.831111337047\n",
+            "\n",
+            "Model with Polynomial Transformation + Regularization\n",
+            "Train RMSE: 15.23990847052503\n",
+            "Validation RMSE: 16.053219757460585\n"
+          ]
+        }
+      ],
+      "source": [
+        "# Run this cell without changes\n",
+        "\n",
+        "print(\"Baseline Model\")\n",
+        "print(\"Train RMSE:\", baseline_rmse)\n",
+        "print(\"Validation RMSE:\", baseline_cv_rmse)\n",
+        "print()\n",
+        "print(\"Model with Polynomial Transformation (Degree 5)\")\n",
+        "print(\"Train RMSE:\", final_poly_rmse)\n",
+        "print(\"Validation RMSE:\", final_poly_cv_rmse)\n",
+        "print()\n",
+        "print(\"Model with Polynomial Transformation + Regularization\")\n",
+        "print(\"Train RMSE:\", ridge_rmse)\n",
+        "print(\"Validation RMSE:\", ridge_cv_rmse)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "CzZIb2ORpsuH"
+      },
+      "source": [
+        "Did we successfully reduce overfitting? Which model is the best model so far?\n",
+        "\n",
+        "---\n",
+        "\n",
+        "<details>\n",
+        "    <summary style=\"cursor: pointer\"><b>Answer (click to reveal)</b></summary>\n",
+        "\n",
+        "Compared to the model with the polynomial transformation, yes, we successfully reduced overfitting. We can tell because the gap between the train and validation RMSE got a lot smaller.\n",
+        "\n",
+        "At this point, our best model is actually still the baseline model. Even though we have a lower RMSE for the training data with both the model with polynomial transformation and the model with regularization added, the validation RMSE was still lowest for the baseline model.\n",
+        "    \n",
+        "</details>\n",
+        "\n",
+        "Let's try adding stronger regularization penalties, to see if we can reduce the overfitting a bit further while still keeping the improvements to underfitting that we got from the polynomial features transformation."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 34,
+      "metadata": {
+        "id": "P2Z-qDl3psuH",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 388
+        },
+        "outputId": "d158c41c-6b83-4ae1-dafb-485b0098963a"
+      },
+      "outputs": [
+        {
+          "output_type": "display_data",
+          "data": {
+            "text/plain": [
+              "<Figure size 432x432 with 1 Axes>"
+            ],
+            "image/png": "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\n"
+          },
+          "metadata": {
+            "needs_background": "light"
+          }
+        }
+      ],
+      "source": [
+        "# Run this cell without changes\n",
+        "\n",
+        "# Create lists of RMSE values\n",
+        "train_rmse = []\n",
+        "val_rmse = []\n",
+        "\n",
+        "# Create list of alphas we want to consider\n",
+        "alphas = [1, 10, 25, 50, 75, 100, 125, 250, 500]\n",
+        "\n",
+        "for alpha in alphas:\n",
+        "    # Fit a model with a given regularization penalty\n",
+        "    model = Ridge(random_state=42, alpha=alpha)\n",
+        "    model.fit(X_train_scaled, y_train)\n",
+        "    \n",
+        "    # RMSE for training data\n",
+        "    y_pred_ridge = model.predict(X_train_scaled)\n",
+        "    train_rmse.append(mean_squared_error(y_train, y_pred_ridge, squared=False))\n",
+        "    \n",
+        "    # RMSE for validation data\n",
+        "    ridge_cv = cross_val_score(model, X_train_scaled, y_train, scoring=\"neg_root_mean_squared_error\")\n",
+        "    val_rmse.append(-(ridge_cv.mean()))\n",
+        "\n",
+        "# Plot train vs. validation RMSE\n",
+        "fig, ax = plt.subplots(figsize=(6,6))\n",
+        "ax.plot(alphas, train_rmse, label=\"Training Data\")\n",
+        "ax.plot(alphas, val_rmse, label=\"Validation Data\")\n",
+        "ax.set_xlabel(\"Alpha (Regularization Penalty)\")\n",
+        "ax.set_ylabel(\"RMSE\")\n",
+        "ax.legend();"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "v0wm9lTvpsuH"
+      },
+      "source": [
+        "(This time both are plotted on the same axes because the RMSE has the same order of magnitude.)\n",
+        "\n",
+        "As we increase the alpha (regularization penalty) along the x-axis, first we can see a big drop in the validation RMSE, then as we keep penalizing more, eventually the RMSE for both the training and validation data starts increasing (meaning we are starting to underfit again).\n",
+        "\n",
+        "The code below finds the best alpha value from our list, i.e. the alpha that results in the lowest RMSE for the validation data:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 35,
+      "metadata": {
+        "id": "BInLCVewpsuI",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "beb6083b-9729-4bf5-f455-b9530b652d40"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Lowest RMSE: 15.674064966813987\n",
+            "Best alpha: 100\n"
+          ]
+        }
+      ],
+      "source": [
+        "# Run this cell without changes\n",
+        "\n",
+        "lowest_rmse = min(val_rmse)\n",
+        "print(\"Lowest RMSE:\", lowest_rmse)\n",
+        "\n",
+        "best_alpha = alphas[val_rmse.index(lowest_rmse)]\n",
+        "print(\"Best alpha:\", best_alpha)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [],
+      "metadata": {
+        "id": "QSS_GNnjZCrL"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "grRjnXfNpsuI"
+      },
+      "source": [
+        "Let's build a final model using that alpha value and compare it to our previous models:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 36,
+      "metadata": {
+        "id": "rudGdkH4psuI"
+      },
+      "outputs": [],
+      "source": [
+        "# Run this cell without changes\n",
+        "\n",
+        "# Fit a model with a given regularization penalty\n",
+        "final_model = Ridge(random_state=42, alpha=best_alpha)\n",
+        "final_model.fit(X_train_scaled, y_train)\n",
+        "\n",
+        "# RMSE for training data\n",
+        "y_pred_final = final_model.predict(X_train_scaled)\n",
+        "final_rmse = mean_squared_error(y_train, y_pred_final, squared=False)\n",
+        "\n",
+        "# RMSE for validation data\n",
+        "final_cv = cross_val_score(final_model, X_train_scaled, y_train, scoring=\"neg_root_mean_squared_error\")\n",
+        "final_cv_rmse = -(final_cv.mean())"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 37,
+      "metadata": {
+        "id": "u45tXPkQpsuI",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "948173f0-4d86-4562-a0c3-7a338df41618"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Baseline Model\n",
+            "Train RMSE: 15.97633456376879\n",
+            "Validation RMSE: 15.953844849875598\n",
+            "\n",
+            "Model with Polynomial Transformation (Degree 5)\n",
+            "Train RMSE: 1.4308605074521387e-06\n",
+            "Validation RMSE: 17109.831111337047\n",
+            "\n",
+            "Final Model with Polynomial Transformation + Regularization\n",
+            "Train RMSE: 15.85687819199106\n",
+            "Validation RMSE: 15.674064966813987\n"
+          ]
+        }
+      ],
+      "source": [
+        "# Run this cell without changes\n",
+        "\n",
+        "print(\"Baseline Model\")\n",
+        "print(\"Train RMSE:\", baseline_rmse)\n",
+        "print(\"Validation RMSE:\", baseline_cv_rmse)\n",
+        "print()\n",
+        "print(\"Model with Polynomial Transformation (Degree 5)\")\n",
+        "print(\"Train RMSE:\", final_poly_rmse)\n",
+        "print(\"Validation RMSE:\", final_poly_cv_rmse)\n",
+        "print()\n",
+        "print(\"Final Model with Polynomial Transformation + Regularization\")\n",
+        "print(\"Train RMSE:\", final_rmse)\n",
+        "print(\"Validation RMSE:\", final_cv_rmse)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "Fh1L5pjTpsuI"
+      },
+      "source": [
+        "### Choosing a Final Model\n",
+        "\n",
+        "While we have already labeled a model as `final_model` above, make sure you understand why: this is the model with the best (lowest) validation RMSE. We also improved the train RMSE somewhat as well, meaning that our modeling strategy has actually reduced both underfitting and overfitting!\n",
+        "\n",
+        "The impact of the changes made so far has been minimal, which makes sense given our business context. We are trying to predict blood pressure based on proxy measurements that leave out a lot of important information! But we still did see some improvement over the baseline by applying polynomial feature transformation and regularization."
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "i_XVPqzxpsuJ"
+      },
+      "source": [
+        "## 5. Evaluate a Final Model on the Test Set\n",
+        "\n",
+        "Often our lessons leave out this step because we are focused on other concepts, but if you were to present your final model to stakeholders, it's important to perform one final analysis on truly unseen data to make sure you have a clear idea of how the model will perform in the field.\n",
+        "\n",
+        "### Instantiating the Final Model\n",
+        "\n",
+        "Unless you are using a model that is very slow to fit, it's a good idea to re-create it from scratch prior to the final evaluation. That way you avoid any artifacts of how you iterated on the model previously.\n",
+        "\n",
+        "In the cell below, instantiate a `Ridge` model with `random_state=42` and `alpha=100`."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 39,
+      "metadata": {
+        "id": "zpu_Nk3YpsuJ"
+      },
+      "outputs": [],
+      "source": [
+        "# Replace None with appropriate code\n",
+        "\n",
+        "final_model = Ridge(random_state= 42, alpha=100)\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "KGqomZMDpsuJ"
+      },
+      "source": [
+        "### Fitting the Final Model on the Training Data\n",
+        "\n",
+        "You can go ahead and use the `X_train_scaled` and `y_train` data we created earlier."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 40,
+      "metadata": {
+        "id": "gDNfdaokpsuK",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "bee2549c-cafe-400e-cdcb-1dd7b6653192"
+      },
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "Ridge(alpha=100, random_state=42)"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 40
+        }
+      ],
+      "source": [
+        "# Your code here\n",
+        "final_model.fit(X_train_scaled,y_train)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "qdQzunSRpsuK"
+      },
+      "source": [
+        "### Preprocessing the Test Set\n",
+        "\n",
+        "The training data for our final model was transformed in two ways:\n",
+        "\n",
+        "1. Polynomial features added by the `poly` transformer object\n",
+        "2. Scaled by the `scaler` transformer object\n",
+        "\n",
+        "In the cell below, transform the test data in the same way, with the same transformer objects. Do NOT re-instantiate or re-fit these objects."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 41,
+      "metadata": {
+        "id": "5JhxtkWHpsuK"
+      },
+      "outputs": [],
+      "source": [
+        "# Replace None with appropriate code\n",
+        "\n",
+        "# Add polynomial features\n",
+        "X_test_poly = poly.transform(X_test)\n",
+        "\n",
+        "# Scale data\n",
+        "X_test_scaled = scaler.transform(X_test_poly)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "lFtfcXqvpsuK"
+      },
+      "source": [
+        "Make sure the shape is correct. If you have too few columns, make sure that you passed the transformed version of `X_test` (`X_test_poly`) to the scaler rather than just `X_test`."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 42,
+      "metadata": {
+        "id": "Adt-2LTApsuL"
+      },
+      "outputs": [],
+      "source": [
+        "# Run this cell without changes\n",
+        "\n",
+        "assert X_test_scaled.shape == (56, 252)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "-_hu3UWtpsuL"
+      },
+      "source": [
+        "### Evaluating RMSE with Final Model and Preprocessed Test Set\n",
+        "\n",
+        "This time we don't need to use cross-validation, since we are using the test set. In the cell below, generate predictions for the test data then use `mean_squared_error` with `squared=False` to find the RMSE for our holdout test set."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 43,
+      "metadata": {
+        "id": "r0h94xZ8psuL",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "df3df3ac-3dd8-4c9c-c1bc-4128b43d452b"
+      },
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "13.25652647434673"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 43
+        }
+      ],
+      "source": [
+        "# Replace None with appropriate code\n",
+        "\n",
+        "# Generate predictions\n",
+        "y_pred_test = final_model.predict(X_test_scaled)\n",
+        "\n",
+        "# Find RMSE\n",
+        "test_rmse = mean_squared_error(y_test, y_pred_test, squared= False)\n",
+        "test_rmse"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "h4cGleyZpsuL"
+      },
+      "source": [
+        "### Interpreting Our Results\n",
+        "\n",
+        "So, we successfully used polynomial features transformation and regularization to improve our metrics. But, can we recommend that this model be used for the purpose of predicting blood pressure based on these features?\n",
+        "\n",
+        "Let's create a scatter plot of actual vs. predicted blood pressure, with the boundaries of high blood pressure indicated:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 44,
+      "metadata": {
+        "id": "gfDBV9q0psuL",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 388
+        },
+        "outputId": "e3be3104-ace6-4262-b4a1-268fadfaccbf"
+      },
+      "outputs": [
+        {
+          "output_type": "display_data",
+          "data": {
+            "text/plain": [
+              "<Figure size 576x432 with 1 Axes>"
+            ],
+            "image/png": "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t3HTTTdxxBFH8Pzzz/Od73yHBx/cOzwhtl79zp07mTRpEuPGjWPMmDEpJYHa2lq++93vMmrUKE455RR2794N0OAcjz32GCNGjGD8+PH84Ac/4PTTT69//erVqznxxBM59NBDufnm5Ov+/OhHP2LUqFFMmjSJjxJ84nn22Wc58sgjGTNmDDNnzqSqqqrZ8ieeeIIRI0Ywbty4pDXzO++8kzPPPJMTTzyR4cOH8/Of/xyItkx8/vOf57zzzmP06NF88MEH/OY3v+Hoo49m7NixXHPNNQDs2rWLqVOnUlpayujRo7nvvvsAuOKKKzj88MMZO3YsP/nJT5pcL9j7O1m8eDFf/OIXmTZtGocffji1tbVcdtll9ee67bbbmsSdKL6hQ4eyZcuWpDHF7N69mylTpnD77QnXZxKRTi7VKsWLQA3RJV9fyVw44TB//nz69u3L7t27OfrooznjjDOoq6vjggsu4Omnn2bIkCGUl5fTt29fzj///AZN2wsWLEh4zKKiIu677z569uzJli1bOO6445gyZUqzg5nWrl3LH//4R2699VbOPfdcHnroIc4999z6xysrK7nooovqY/qP//iPBq9/++23efLJJ9mxYwcjRoxg1qxZRCKRBs/ZtWsXY8eO5de//jXXXXcdP//5z7nxxhsbnOP888/nscceY+jQoZx33nnMmzePmTNnJi2/4IILePzxxzn44IP56le/mvTnW7ZsGcuXL6e4uJijjz6ayZMn86lPfYq1a9dy++23M27cOJ566inWrl3LCy+8gLszbdo0nnvuObZs2cL+++/Pww8/DMC2bdv4+OOPefjhh1mxYgVmxicp9NW8/vrrLF++nCFDhvD73/+eXr168eKLL1JVVcXEiRP50pe+xJAhQ5r8XmLxxXvyySebxBSzc+dOvva1r9V/iYg01mIN3cy+QjSJTwe+ArxsZtMzHVhHdsstt1BaWspxxx3Hxo0bWbt2LS+//DLHHnts/Zt7a3eKc3d+9rOfMXbsWCZPnsyHH37I5s2bm33N4MGDOfzwwwEYM2YM7733XoPH3377bYYMGVIf01e+8pUGj0+ePJkuXbrQr18/SkpKEp4vLy+Ps846C4AZM2bw4osvNnh8zZo1DB48mKFDhwLwta99jeeffz5p+dtvv83gwYM55JBDMDNmzEi0gnDUCSecwKc+9Sm6du3K6aef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\n"
+          },
+          "metadata": {
+            "needs_background": "light"
+          }
+        }
+      ],
+      "source": [
+        "# Run this cell without changes\n",
+        "import seaborn as sns\n",
+        "\n",
+        "# Set up plot\n",
+        "fig, ax = plt.subplots(figsize=(8,6))\n",
+        "\n",
+        "# Seaborn scatter plot with best fit line\n",
+        "sns.regplot(x=y_test, y=y_pred_test, ci=None, truncate=False, ax=ax)\n",
+        "ax.set_xlabel(\"Actual Blood Pressure\")\n",
+        "ax.set_ylabel(\"Predicted Blood Pressure\")\n",
+        "\n",
+        "# Add spans showing high blood pressure + legend\n",
+        "ax.axvspan(129, max(y_test) + 1, alpha=0.2, color=\"blue\", label=\"actual high blood pressure risk\")\n",
+        "ax.axhspan(129, max(y_pred_test) + 1, alpha=0.2, color=\"gray\", label=\"predicted high blood pressure risk\")\n",
+        "ax.legend();"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "yxdjwSktpsuM"
+      },
+      "source": [
+        "In general, as the true blood pressure values increase, so do the predicted blood pressure values. So, it's clear that our model is picking up on *some* information from our features.\n",
+        "\n",
+        "But it looks like this model does not actually solve the initial business problem very well. Recall that our question was: ***can we predict blood pressure using just a scale and a tape measure?*** Our model would incorrectly flag one person as being at risk of high blood pressure, while missing all of the people who actually are at risk of high blood pressure.\n",
+        "\n",
+        "It is possible that some other model algorithm (e.g. k-nearest neighbors or decision trees) would do a better job of picking up on the underlying patterns in this dataset. Or if we set this up as a classification problem rather than a regression problem, if we're only interested in flagging high blood pressure rather than predicting blood pressure in general.\n",
+        "\n",
+        "But if we had to stop this analysis now in its current state, we would need to conclude that **while we were able to pick up some information about blood pressure using these variables alone, we did not produce a model that would work for this business case**.\n",
+        "\n",
+        "This is something that happens sometimes — not every target can be predicted with the features you have been given! In this case, maybe your model would still be useful for epidemiological modeling (predicting the blood pressure in populations) rather than predicting blood pressure for an individual, since we are picking up on some information. Further study would be needed to determine the feasibility of this approach."
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "lIr3f0TipsuM"
+      },
+      "source": [
+        "## Summary\n",
+        "\n",
+        "In this cumulative lab, you performed an end-to-end machine learning process with correct usage of training, validation, and test data. You identified underfitting and overfitting and applied strategies to address them. Finally, you evaluated your final model using test data, and interpreted those results in the context of a business problem."
+      ]
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "display_name": "Python (learn-env)",
+      "language": "python",
+      "name": "learn-env"
+    },
+    "language_info": {
+      "codemirror_mode": {
+        "name": "ipython",
+        "version": 3
+      },
+      "file_extension": ".py",
+      "mimetype": "text/x-python",
+      "name": "python",
+      "nbconvert_exporter": "python",
+      "pygments_lexer": "ipython3",
+      "version": "3.8.5"
+    },
+    "colab": {
+      "provenance": [],
+      "include_colab_link": true
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 0
+}
